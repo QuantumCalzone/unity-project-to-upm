@@ -1,3 +1,4 @@
+import os
 import pygit2
 from pythonutils.input_utils import *
 from pythonutils.os_utils import *
@@ -14,7 +15,8 @@ names_to_ignore = {
 
 # input_project_path = stripped_input("Enter/paste the project path: ")
 input_project_path = "/Users/georgekatsaros/Projects/UnityPackageTest"
-repository = pygit2.Repository(".git")
+input_project_path = os.path.join(input_project_path, ".git")
+repository = pygit2.Repository(input_project_path)
 
 
 def switch_branch(branch_name):
