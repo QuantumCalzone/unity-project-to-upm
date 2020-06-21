@@ -198,3 +198,5 @@ fabric.properties
 
 # Custom
 .idea/
+user_name.txt
+user_mail.txt
