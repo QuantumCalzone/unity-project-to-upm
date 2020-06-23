@@ -1,5 +1,6 @@
 import shutil
 import pygit2
+from pythonutils.input_utils import *
 from pythonutils.os_utils import *
 
 verbose = True
@@ -13,7 +14,7 @@ names_to_ignore = {
 }
 
 # input_project_path = stripped_input("Enter/paste the project path: ")
-input_project_path = r"C:\Users\georg\Projects\UnityBookmarks"
+input_project_path = r"/Users/georgekatsaros/Projects/UnityFramework"
 input_project_git_path = os.path.join(input_project_path, ".git")
 repository = pygit2.Repository(input_project_git_path)
 
@@ -72,6 +73,16 @@ delete_root_folder("Library")
 delete_root_folder("Packages")
 delete_root_folder("ProjectSettings")
 
+
+project_dirs = get_all_in_dir(target_dir=input_project_path, full_path=True, recursive=True, include_dirs=True,
+                              include_files=False)
+for project_dir in project_dirs:
+    project_dir_contents = os.listdir(project_dir)
+    print(project_dir_contents)
+    is_empty = len(project_dir_contents) == 0
+    print(f"project_dir: {is_empty}")
+
+
 assets_folder_path = os.path.join(input_project_path, "Assets")
 assets = get_all_in_dir(assets_folder_path)
 for asset in assets:
@@ -79,8 +90,6 @@ for asset in assets:
     shutil.move(asset, new_asset_path)
 
 os.rmdir(assets_folder_path)
-
-# https://www.google.com/search?q=pygit2+commit+all+changes&rlz=1C1CHBF_enUS838US838&oq=pygit2+commit+all+changes&aqs=chrome..69i57.4807j0j4&sourceid=chrome&ie=UTF-8
 
 user_name = read_git_info("user_name")
 user_mail = read_git_info("user_mail")
