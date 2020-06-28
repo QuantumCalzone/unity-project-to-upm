@@ -70,6 +70,7 @@ most_recent_commit = repository[repository.head.target]
 repository.create_branch("upm", most_recent_commit)
 switch_branch("upm")
 
+delete_root_folder("Assets")
 delete_root_folder("Library")
 delete_root_folder("ProjectSettings")
 
