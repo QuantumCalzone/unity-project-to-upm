@@ -113,9 +113,9 @@ else:
     #
     # repository.remotes["origin"].push(["refs/heads/upm:refs/heads/upm"])
 
-    # switch_branch("master")
-
     # use this as temp
     print("git add -A")
     print("git commit -m \"Package\"")
     print("git push --set-upstream --force origin upm")
+
+    # switch_branch("master")
