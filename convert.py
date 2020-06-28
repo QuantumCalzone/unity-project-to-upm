@@ -14,7 +14,8 @@ names_to_ignore = {
 }
 
 # input_project_path = stripped_input("Enter/paste the project path: ")
-input_project_path = r"/Users/georgekatsaros/Projects/UnityFramework"
+input_project_path = r"C:\Users\georg\Projects\UnityBookmarks"
+package_name = os.path.basename(input_project_path)
 input_project_git_path = os.path.join(input_project_path, ".git")
 repository = pygit2.Repository(input_project_git_path)
 
@@ -70,26 +71,27 @@ repository.create_branch("upm", most_recent_commit)
 switch_branch("upm")
 
 delete_root_folder("Library")
-delete_root_folder("Packages")
 delete_root_folder("ProjectSettings")
 
-
-project_dirs = get_all_in_dir(target_dir=input_project_path, full_path=True, recursive=True, include_dirs=True,
-                              include_files=False)
+# delete all empty folders
+project_dirs = list(os.walk(input_project_path))[1:]
 for project_dir in project_dirs:
-    project_dir_contents = os.listdir(project_dir)
-    print(project_dir_contents)
-    is_empty = len(project_dir_contents) == 0
-    print(f"project_dir: {is_empty}")
+    if not project_dir[2]:
+        is_empty = len(project_dir[0]) == 0
+        if is_empty:
+            os.rmdir(project_dir[0])
 
 
-assets_folder_path = os.path.join(input_project_path, "Assets")
-assets = get_all_in_dir(assets_folder_path)
+package_folder_path = os.path.join(input_project_path, "Packages")
+package_folder_path = os.path.join(package_folder_path, package_name)
+assets = get_all_in_dir(package_folder_path)
 for asset in assets:
-    new_asset_path = asset.replace(assets_folder_path, input_project_path)
+    new_asset_path = asset.replace(package_folder_path, input_project_path)
     shutil.move(asset, new_asset_path)
 
-os.rmdir(assets_folder_path)
+delete_root_folder("Packages")
+os.remove(os.path.join(input_project_path, ".gitignore"))
+
 
 user_name = read_git_info("user_name")
 user_mail = read_git_info("user_mail")
@@ -111,3 +113,8 @@ else:
     # repository.remotes["origin"].push(["refs/heads/upm:refs/heads/upm"])
 
     # switch_branch("master")
+
+    # use this as temp
+    print("git add -A")
+    print("git commit -m \"Package\"")
+    print("git push --set-upstream --force origin upm")
