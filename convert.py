@@ -6,15 +6,11 @@ from pythonutils.os_utils import *
 verbose = True
 names_to_ignore = {
     ".git",
-    ".gitattributes",
-    ".DS_Store",
-    "Assets",
-    "package.json",
-    "package.json.meta",
+    "Packages",
 }
 
 # input_project_path = stripped_input("Enter/paste the project path: ")
-input_project_path = r"C:\Users\georg\Projects\UnityBookmarks"
+input_project_path = r"C:\Users\georg\Projects\UnityFramework"
 package_name = os.path.basename(input_project_path)
 input_project_git_path = os.path.join(input_project_path, ".git")
 repository = pygit2.Repository(input_project_git_path)
@@ -36,7 +32,7 @@ def delete_root_folder(folder_name):
     folder_path = os.path.join(input_project_path, folder_name)
 
     if os.path.isdir(folder_path):
-        shutil.rmtree(folder_path)
+        shutil.rmtree(folder_path, ignore_errors=True)
         if verbose:
             print(f"delete_root_folder( folder_name: {folder_name} ) | deleted")
         else:
@@ -70,9 +66,12 @@ most_recent_commit = repository[repository.head.target]
 repository.create_branch("upm", most_recent_commit)
 switch_branch("upm")
 
-delete_root_folder("Assets")
-delete_root_folder("Library")
-delete_root_folder("ProjectSettings")
+project_root_folders = get_all_in_dir(target_dir=input_project_path, full_path=True, recursive=False,
+                                      include_dirs=True, include_files=False)
+for project_root_folder in project_root_folders:
+    project_root_folder_name = os.path.basename(project_root_folder)
+    if project_root_folder_name not in names_to_ignore:
+        delete_root_folder(project_root_folder_name)
 
 # delete all empty folders
 project_dirs = list(os.walk(input_project_path))[1:]
@@ -85,7 +84,8 @@ for project_dir in project_dirs:
 
 package_folder_path = os.path.join(input_project_path, "Packages")
 package_folder_path = os.path.join(package_folder_path, package_name)
-assets = get_all_in_dir(package_folder_path)
+assets = get_all_in_dir(target_dir=package_folder_path, full_path=True, recursive=False, include_dirs=True,
+                        include_files=True)
 for asset in assets:
     new_asset_path = asset.replace(package_folder_path, input_project_path)
     shutil.move(asset, new_asset_path)
@@ -117,5 +117,6 @@ else:
     print("git add -A")
     print("git commit -m \"Package\"")
     print("git push --set-upstream --force origin upm")
+    print("git checkout master")
 
     # switch_branch("master")
