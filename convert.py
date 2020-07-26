@@ -9,8 +9,8 @@ names_to_ignore = {
     "Packages",
 }
 
-# input_project_path = stripped_input("Enter/paste the project path: ")
-input_project_path = r"C:\Users\georg\Projects\UnityFramework"
+input_project_path = stripped_input("Enter/paste the project path: ")
+# input_project_path = r"C:\Users\georg\Projects\UnityFramework"
 package_name = os.path.basename(input_project_path)
 input_project_git_path = os.path.join(input_project_path, ".git")
 repository = pygit2.Repository(input_project_git_path)
