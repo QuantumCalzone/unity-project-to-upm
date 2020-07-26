@@ -1,4 +1,5 @@
 import shutil
+import pyperclip
 import pygit2
 from pythonutils.input_utils import *
 from pythonutils.os_utils import *
@@ -114,9 +115,27 @@ else:
     # repository.remotes["origin"].push(["refs/heads/upm:refs/heads/upm"])
 
     # use this as temp
-    print("git add -A")
-    print("git commit -m \"Package\"")
-    print("git push --set-upstream --force origin upm")
-    print("git checkout master")
+    print("")
+    cd_command = "cd {}".format(input_project_path)
+    git_add_command = "git add -A"
+    git_commit_command = "git commit -m \"Package\""
+    git_push_command = "git push --set-upstream --force origin upm"
+    git_checkout_command = "git checkout master"
+    git_status_command = "git status"
+    print(cd_command)
+    print(git_add_command)
+    print(git_commit_command)
+    print(git_push_command)
+    print(git_checkout_command)
+    print(git_status_command)
+    print("")
+
+    clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command, git_add_command, git_commit_command,
+                                                              git_push_command, git_checkout_command,
+                                                              git_status_command)
+    pyperclip.copy(clipboard)
+
+    print("That has been copied to you clipboard. Paste it in terminal!")
+    print("")
 
     # switch_branch("master")
