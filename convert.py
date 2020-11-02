@@ -1,8 +1,9 @@
-import shutil
-import pyperclip
+import json
 import pygit2
-from pythonutils.input_utils import *
+import pyperclip
 from pythonutils.os_utils import *
+import re
+import shutil
 
 verbose = True
 names_to_ignore = {
@@ -10,27 +11,21 @@ names_to_ignore = {
     "Packages",
 }
 
-input_project_path = stripped_input("Enter/paste the project path: ")
-# input_project_path = r"C:\Users\georg\Projects\UnityFramework"
-package_name = os.path.basename(input_project_path)
-input_project_git_path = os.path.join(input_project_path, ".git")
-repository = pygit2.Repository(input_project_git_path)
 
-
-def switch_branch(branch_name):
+def switch_branch(branch_name, repository):
     if verbose:
-        print(f"switch_branch( branch_name: {branch_name} )")
+        print(f"switch_branch( branch_name: {branch_name} , repository: {repository.path} )")
 
     branch_lookup = repository.lookup_branch(branch_name)
     branch_lookup_reference = repository.lookup_reference(branch_lookup.name)
     repository.checkout(branch_lookup_reference)
 
 
-def delete_root_folder(folder_name):
+def delete_root_folder(folder_name, project_path):
     if verbose:
-        print(f"delete_root_folder( folder_name: {folder_name} )")
+        print(f"delete_root_folder( folder_name: {folder_name} , project_path: {project_path} )")
 
-    folder_path = os.path.join(input_project_path, folder_name)
+    folder_path = os.path.join(project_path, folder_name)
 
     if os.path.isdir(folder_path):
         shutil.rmtree(folder_path, ignore_errors=True)
@@ -58,84 +53,154 @@ def read_git_info(file_name):
     return git_info
 
 
-upm_branch = repository.lookup_branch("upm")
+def get_new_version(project_path):
+    if verbose:
+        print(f"get_new_version( project_path: {project_path} )")
 
-if upm_branch is not None:
-    repository.branches.delete("upm")
+    package_json_path = os.path.join(project_path, "Packages", os.path.basename(project_path), "package.json")
+    new_version = ""
 
-most_recent_commit = repository[repository.head.target]
-repository.create_branch("upm", most_recent_commit)
-switch_branch("upm")
+    with open(package_json_path) as package_json:
+        package_json_data = json.load(package_json)
+        version = package_json_data["version"]
+        print(f"version: {version}")
+        numbers = re.findall(r"\d+(?!\d+)", version)
+        print(f"numbers: {numbers}")
+        last_number = numbers[len(numbers) - 1]
+        print(f"last_number: {last_number}")
+        new_version = version[:-len(last_number)]
+        new_version = new_version + str(int(last_number) + 1)
+        print(f"new_version: {new_version}")
 
-project_root_folders = get_all_in_dir(target_dir=input_project_path, full_path=True, recursive=False,
-                                      include_dirs=True, include_files=False)
-for project_root_folder in project_root_folders:
-    project_root_folder_name = os.path.basename(project_root_folder)
-    if project_root_folder_name not in names_to_ignore:
-        delete_root_folder(project_root_folder_name)
-
-# delete all empty folders
-project_dirs = list(os.walk(input_project_path))[1:]
-for project_dir in project_dirs:
-    if not project_dir[2]:
-        is_empty = len(project_dir[0]) == 0
-        if is_empty:
-            os.rmdir(project_dir[0])
+    return new_version
 
 
-package_folder_path = os.path.join(input_project_path, "Packages")
-package_folder_path = os.path.join(package_folder_path, package_name)
-assets = get_all_in_dir(target_dir=package_folder_path, full_path=True, recursive=False, include_dirs=True,
-                        include_files=True)
-for asset in assets:
-    new_asset_path = asset.replace(package_folder_path, input_project_path)
-    shutil.move(asset, new_asset_path)
+def increment_version(project_path):
+    if verbose:
+        print(f"increment_version( project_path: {project_path} )")
 
-delete_root_folder("Packages")
-os.remove(os.path.join(input_project_path, ".gitignore"))
+    package_json_path = os.path.join(project_path, "Packages", os.path.basename(project_path), "package.json")
+    new_version = get_new_version(project_path)
+    package_json_data = {}
+
+    with open(package_json_path) as package_json:
+        package_json_data = json.load(package_json)
+        package_json_data["version"] = new_version
+
+    with open(package_json_path, 'w') as package_json:
+        json.dump(package_json_data, package_json, indent=4, separators=(',', ': '))
 
 
-user_name = read_git_info("user_name")
-user_mail = read_git_info("user_mail")
+def commit_changes(repository, author, commiter, message):
+    if verbose:
+        print(f"commit_changes( repository: {repository.path} , f{author} , f{commiter} , {message} )")
 
-if user_name == "" or user_mail == "":
-    print("You need to fill out info!")
-else:
-    index = repository.index
-    index.add_all()
-    index.write()
-    author = pygit2.Signature(user_name, user_mail)
-    commiter = pygit2.Signature(user_name, user_mail)
-    tree = repository.TreeBuilder().write()
-    commit = repository.create_commit("refs/heads/upm", author, commiter, "Package", tree, [repository.head.target])
+    repository.index.add_all()
+    repository.index.write()
 
-    # sshcred = repository.credentials.Keypair("git", "/path/to/id_rsa.pub", "/path/to/id_rsa", "")
-    # repository.crendentals = sshcred
-    #
-    # repository.remotes["origin"].push(["refs/heads/upm:refs/heads/upm"])
+    repository.create_commit(
+        "refs/heads/master",
+        author,
+        commiter,
+        message,
+        repository.index.write_tree(),
+        [repository.head.target]
+    )
 
-    # use this as temp
-    print("")
-    cd_command = "cd {}".format(input_project_path)
-    git_add_command = "git add -A"
-    git_commit_command = "git commit -m \"Package\""
-    git_push_command = "git push --set-upstream --force origin upm"
-    git_checkout_command = "git checkout master"
-    git_status_command = "git status"
-    print(cd_command)
-    print(git_add_command)
-    print(git_commit_command)
-    print(git_push_command)
-    print(git_checkout_command)
-    print(git_status_command)
-    print("")
 
-    clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command, git_add_command, git_commit_command,
-                                                              git_push_command, git_checkout_command,
-                                                              git_status_command)
-    pyperclip.copy(clipboard)
+def convert(project_path):
+    if verbose:
+        print(f"convert( file_name: {project_path} )")
 
-    print("That has been copied to you clipboard. Paste it in terminal!")
-    print("")
+    user_name = read_git_info("user_name")
+    user_mail = read_git_info("user_mail")
 
-    # switch_branch("master")
+    if user_name == "" or user_mail == "":
+        print("You need to fill out info!")
+    else:
+        package_name = os.path.basename(project_path)
+        input_project_git_path = os.path.join(project_path, ".git")
+        repository = pygit2.Repository(input_project_git_path)
+
+        author = pygit2.Signature(user_name, user_mail)
+        commiter = pygit2.Signature(user_name, user_mail)
+
+        increment_version(project_path)
+
+        commit_changes(repository, author, commiter, "incremented version")
+
+        upm_branch = repository.lookup_branch("upm")
+
+        if upm_branch is not None:
+            repository.branches.delete("upm")
+
+        most_recent_commit = repository[repository.head.target]
+        repository.create_branch("upm", most_recent_commit)
+        switch_branch("upm", repository)
+
+        project_root_folders = get_all_in_dir(target_dir=project_path, full_path=True, recursive=False,
+                                              include_dirs=True, include_files=False)
+        for project_root_folder in project_root_folders:
+            project_root_folder_name = os.path.basename(project_root_folder)
+            if project_root_folder_name not in names_to_ignore:
+                delete_root_folder(project_root_folder_name, project_path)
+
+        # delete all empty folders
+        project_dirs = list(os.walk(project_path))[1:]
+        for project_dir in project_dirs:
+            if not project_dir[2]:
+                is_empty = len(project_dir[0]) == 0
+                if is_empty:
+                    os.rmdir(project_dir[0])
+
+        package_folder_path = os.path.join(project_path, "Packages")
+        package_folder_path = os.path.join(package_folder_path, package_name)
+        assets = get_all_in_dir(target_dir=package_folder_path, full_path=True, recursive=False, include_dirs=True,
+                                include_files=True)
+        for asset in assets:
+            new_asset_path = asset.replace(package_folder_path, project_path)
+            shutil.move(asset, new_asset_path)
+
+        delete_root_folder("Packages", project_path)
+        os.remove(os.path.join(project_path, ".gitignore"))
+
+        index = repository.index
+        index.add_all()
+        index.write()
+        tree = repository.TreeBuilder().write()
+        commit = repository.create_commit("refs/heads/upm", author, commiter, "Package", tree, [repository.head.target])
+        # commit_changes(repository, author, commiter, "Package")
+
+        # sshcred = repository.credentials.Keypair("git", "/path/to/id_rsa.pub", "/path/to/id_rsa", "")
+        # repository.crendentals = sshcred
+        #
+        # repository.remotes["origin"].push(["refs/heads/upm:refs/heads/upm"])
+
+        # use this as temp
+        print("")
+        cd_command = "cd {}".format(project_path)
+        git_add_command = "git add -A"
+        git_commit_command = "git commit -m \"Package\""
+        git_push_command = "git push --set-upstream --force origin upm"
+        git_checkout_command = "git checkout master"
+        git_status_command = "git status"
+        print(cd_command)
+        print(git_add_command)
+        print(git_commit_command)
+        print(git_push_command)
+        print(git_checkout_command)
+        print(git_status_command)
+        print("")
+
+        clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command, git_add_command, git_commit_command,
+                                                                  git_push_command, git_checkout_command,
+                                                                  git_status_command)
+        # clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command,
+        #                                                           git_push_command, git_checkout_command,
+        #                                                           git_status_command)
+        pyperclip.copy(clipboard)
+
+        print("That has been copied to you clipboard. Paste it in terminal!")
+        print("")
+
+        # switch_branch("master")
