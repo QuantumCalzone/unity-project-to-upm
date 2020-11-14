@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import pygit2
 import pyperclip
@@ -122,28 +123,38 @@ def convert(project_path):
         input_project_git_path = os.path.join(project_path, ".git")
         repository = pygit2.Repository(input_project_git_path)
 
-        author = pygit2.Signature(user_name, user_mail)
-        commiter = pygit2.Signature(user_name, user_mail)
+        # author = pygit2.Signature(user_name, user_mail)
+        # commiter = pygit2.Signature(user_name, user_mail)
+        #
+        # increment_version(project_path)
+        #
+        # commit_changes(repository, author, commiter, "incremented version")
+        #
+        # upm_branch = repository.lookup_branch("upm")
+        #
+        # if upm_branch is not None:
+        #     repository.branches.delete("upm")
+        #
+        # most_recent_commit = repository[repository.head.target]
+        # repository.create_branch("upm", most_recent_commit)
+        # switch_branch("upm", repository)
 
-        increment_version(project_path)
+        project_packages_path = os.path.join(project_path, "Packages", package_name)
 
-        commit_changes(repository, author, commiter, "incremented version")
-
-        upm_branch = repository.lookup_branch("upm")
-
-        if upm_branch is not None:
-            repository.branches.delete("upm")
-
-        most_recent_commit = repository[repository.head.target]
-        repository.create_branch("upm", most_recent_commit)
-        switch_branch("upm", repository)
-
+        # delete all folders at root (except the ones we need to keep)
         project_root_folders = get_all_in_dir(target_dir=project_path, full_path=True, recursive=False,
                                               include_dirs=True, include_files=False)
         for project_root_folder in project_root_folders:
             project_root_folder_name = os.path.basename(project_root_folder)
-            if project_root_folder_name not in names_to_ignore:
+            if project_root_folder_name != "Packages" and project_root_folder_name != ".git":
+                print(f"deleting {project_root_folder_name}")
                 delete_root_folder(project_root_folder_name, project_path)
+
+        # delete all files at root
+        project_root_files = get_all_in_dir(target_dir=project_path, full_path=True, recursive=False,
+                                            include_dirs=False, include_files=True)
+        for root_file in project_root_files:
+            os.remove(root_file)
 
         # delete all empty folders
         project_dirs = list(os.walk(project_path))[1:]
@@ -153,22 +164,30 @@ def convert(project_path):
                 if is_empty:
                     os.rmdir(project_dir[0])
 
-        package_folder_path = os.path.join(project_path, "Packages")
-        package_folder_path = os.path.join(package_folder_path, package_name)
+        temp_id = f"{datetime.utcnow()}"
+        temp_id = temp_id.replace(":", "-")
+        temp_id = temp_id.replace(".", "-")
+        temp_dir = os.path.join(project_path, f"{temp_id}-temp")
+        os.makedirs(temp_dir)
+
+        package_folder_path = os.path.join(project_path, "Packages", package_name)
         assets = get_all_in_dir(target_dir=package_folder_path, full_path=True, recursive=False, include_dirs=True,
                                 include_files=True)
         for asset in assets:
-            new_asset_path = asset.replace(package_folder_path, project_path)
+            new_asset_path = asset.replace(package_folder_path, temp_dir)
             shutil.move(asset, new_asset_path)
 
         delete_root_folder("Packages", project_path)
-        os.remove(os.path.join(project_path, ".gitignore"))
+
+        exit()
+
+
 
         index = repository.index
         index.add_all()
         index.write()
         tree = repository.TreeBuilder().write()
-        commit = repository.create_commit("refs/heads/upm", author, commiter, "Package", tree, [repository.head.target])
+        # commit = repository.create_commit("refs/heads/upm", author, commiter, "Package", tree, [repository.head.target])
         # commit_changes(repository, author, commiter, "Package")
 
         # sshcred = repository.credentials.Keypair("git", "/path/to/id_rsa.pub", "/path/to/id_rsa", "")
