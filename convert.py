@@ -123,23 +123,21 @@ def convert(project_path):
         input_project_git_path = os.path.join(project_path, ".git")
         repository = pygit2.Repository(input_project_git_path)
 
-        # author = pygit2.Signature(user_name, user_mail)
-        # commiter = pygit2.Signature(user_name, user_mail)
-        #
-        # increment_version(project_path)
-        #
-        # commit_changes(repository, author, commiter, "incremented version")
-        #
-        # upm_branch = repository.lookup_branch("upm")
-        #
-        # if upm_branch is not None:
-        #     repository.branches.delete("upm")
-        #
-        # most_recent_commit = repository[repository.head.target]
-        # repository.create_branch("upm", most_recent_commit)
-        # switch_branch("upm", repository)
+        author = pygit2.Signature(user_name, user_mail)
+        commiter = pygit2.Signature(user_name, user_mail)
 
-        project_packages_path = os.path.join(project_path, "Packages", package_name)
+        increment_version(project_path)
+
+        commit_changes(repository, author, commiter, "incremented version")
+
+        upm_branch = repository.lookup_branch("upm")
+
+        if upm_branch is not None:
+            repository.branches.delete("upm")
+
+        most_recent_commit = repository[repository.head.target]
+        repository.create_branch("upm", most_recent_commit)
+        switch_branch("upm", repository)
 
         # delete all folders at root (except the ones we need to keep)
         project_root_folders = get_all_in_dir(target_dir=project_path, full_path=True, recursive=False,
@@ -167,7 +165,8 @@ def convert(project_path):
         temp_id = f"{datetime.utcnow()}"
         temp_id = temp_id.replace(":", "-")
         temp_id = temp_id.replace(".", "-")
-        temp_dir = os.path.join(project_path, f"{temp_id}-temp")
+        temp_id = f"{temp_id}-temp"
+        temp_dir = os.path.join(project_path, temp_id)
         os.makedirs(temp_dir)
 
         package_folder_path = os.path.join(project_path, "Packages", package_name)
@@ -179,15 +178,19 @@ def convert(project_path):
 
         delete_root_folder("Packages", project_path)
 
-        exit()
+        temp_files = get_all_in_dir(target_dir=temp_dir, full_path=True, recursive=False,
+                                    include_dirs=True, include_files=True)
+        for temp_file in temp_files:
+            new_asset_path = temp_file.replace(temp_dir, project_path)
+            shutil.move(temp_file, new_asset_path)
 
-
+        delete_root_folder(temp_id, project_path)
 
         index = repository.index
         index.add_all()
         index.write()
         tree = repository.TreeBuilder().write()
-        # commit = repository.create_commit("refs/heads/upm", author, commiter, "Package", tree, [repository.head.target])
+        commit = repository.create_commit("refs/heads/upm", author, commiter, "Package", tree, [repository.head.target])
         # commit_changes(repository, author, commiter, "Package")
 
         # sshcred = repository.credentials.Keypair("git", "/path/to/id_rsa.pub", "/path/to/id_rsa", "")
