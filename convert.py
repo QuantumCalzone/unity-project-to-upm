@@ -211,12 +211,13 @@ def convert(project_path):
         print(git_commit_command)
         print(git_push_command)
         print(git_checkout_command)
+        print(git_push_command)
         print(git_status_command)
         print("")
 
-        clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command, git_add_command, git_commit_command,
+        clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command, git_add_command, git_commit_command,
                                                                   git_push_command, git_checkout_command,
-                                                                  git_status_command)
+                                                                  git_push_command, git_status_command)
         # clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command,
         #                                                           git_push_command, git_checkout_command,
         #                                                           git_status_command)
