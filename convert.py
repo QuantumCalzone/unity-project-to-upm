@@ -203,20 +203,21 @@ def convert(project_path):
         cd_command = "cd {}".format(project_path)
         git_add_command = "git add -A"
         git_commit_command = "git commit -m \"Package\""
-        git_push_command = "git push --set-upstream --force origin upm"
+        git_push_new_branch_command = "git push --set-upstream --force origin upm"
+        git_push_command = "git push"
         git_checkout_command = "git checkout master"
         git_status_command = "git status"
         print(cd_command)
         print(git_add_command)
         print(git_commit_command)
-        print(git_push_command)
+        print(git_push_new_branch_command)
         print(git_checkout_command)
         print(git_push_command)
         print(git_status_command)
         print("")
 
         clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command, git_add_command, git_commit_command,
-                                                                  git_push_command, git_checkout_command,
+                                                                  git_push_new_branch_command, git_checkout_command,
                                                                   git_push_command, git_status_command)
         # clipboard = "{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n{}\r\n".format(cd_command,
         #                                                           git_push_command, git_checkout_command,
