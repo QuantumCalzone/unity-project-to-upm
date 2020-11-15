@@ -9,6 +9,7 @@ An automation tool to convert your unity project into a package hosted with git.
 * Change your directory to your submodule```cd unity-project-to-upm```
 * Activate the virtual enviroment```.\env\Scripts\activate``` 
 * Install the required packages```python setup.py install```
+* Install this package ```pip install git+https://github.com/QuantumCalzone/pythonutils.git```
 * Create a shortcut for ```convert_to_upm.py``` (found under unity-project-to-upm) and place it in your desired convenient place
 
 Double click that shortcut when you want to create and push a new version of your package.
