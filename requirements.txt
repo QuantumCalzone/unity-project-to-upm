@@ -1,0 +1,6 @@
+cached-property==1.5.1
+cffi==1.14.0
+pycparser==2.20
+pygit2==1.2.1
+pyperclip==1.8.0
+pythonutils==0.0.1
