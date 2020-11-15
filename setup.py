@@ -8,5 +8,12 @@ setup(
     license='',
     author='QuantumCalzone',
     author_email='QuantumCalzone@gmail.com',
-    description='An automation tool to converter your unity project into a package hosted with git.'
+    description='An automation tool to converter your unity project into a package hosted with git.',
+    install_requires=[
+        'cached-property==1.5.1',
+        'cffi==1.14.0',
+        'pycparser==2.20',
+        'pygit2==1.2.1',
+        'pyperclip==1.8.0',
+    ],
 )
