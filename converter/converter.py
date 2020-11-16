@@ -42,7 +42,7 @@ def read_git_info(file_name):
         print(f"read_git_info( file_name: {file_name} )")
 
     active_script_path = os.path.realpath(__file__)
-    project_path = get_parent_dir(active_script_path)
+    project_path = get_parent_dir(get_parent_dir(active_script_path))
 
     git_info_path = os.path.join(project_path, f"{file_name}.txt")
     ensure_file_path_exists(git_info_path)
@@ -144,6 +144,7 @@ def convert(project_path):
                                               include_dirs=True, include_files=False)
         for project_root_folder in project_root_folders:
             project_root_folder_name = os.path.basename(project_root_folder)
+            # todo: check if Library and move to hidden spot
             if project_root_folder_name != "Packages" and project_root_folder_name != ".git":
                 print(f"deleting {project_root_folder_name}")
                 delete_root_folder(project_root_folder_name, project_path)
@@ -197,6 +198,8 @@ def convert(project_path):
         # repository.crendentals = sshcred
         #
         # repository.remotes["origin"].push(["refs/heads/upm:refs/heads/upm"])
+
+        # todo: move Library back from hidden spot
 
         # use this as temp
         print("")
