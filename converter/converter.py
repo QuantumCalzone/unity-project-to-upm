@@ -1,5 +1,7 @@
 from datetime import datetime
 import json
+import os
+import os.path as path
 import pygit2
 import pyperclip
 from pythonutils.os_utils import *
@@ -7,10 +9,6 @@ import re
 import shutil
 
 verbose = True
-names_to_ignore = {
-    ".git",
-    "Packages",
-}
 
 
 def switch_branch(branch_name, repository):
@@ -26,9 +24,9 @@ def delete_root_folder(folder_name, project_path):
     if verbose:
         print(f"delete_root_folder( folder_name: {folder_name} , project_path: {project_path} )")
 
-    folder_path = os.path.join(project_path, folder_name)
+    folder_path = path.join(project_path, folder_name)
 
-    if os.path.isdir(folder_path):
+    if path.isdir(folder_path):
         shutil.rmtree(folder_path, ignore_errors=True)
         if verbose:
             print(f"delete_root_folder( folder_name: {folder_name} ) | deleted")
@@ -41,10 +39,10 @@ def read_git_info(file_name):
     if verbose:
         print(f"read_git_info( file_name: {file_name} )")
 
-    active_script_path = os.path.realpath(__file__)
+    active_script_path = path.realpath(__file__)
     project_path = get_parent_dir(get_parent_dir(active_script_path))
 
-    git_info_path = os.path.join(project_path, f"{file_name}.txt")
+    git_info_path = path.join(project_path, f"{file_name}.txt")
     ensure_file_path_exists(git_info_path)
 
     git_info_file = open(git_info_path, "r")
@@ -58,7 +56,7 @@ def get_new_version(project_path):
     if verbose:
         print(f"get_new_version( project_path: {project_path} )")
 
-    package_json_path = os.path.join(project_path, "Packages", os.path.basename(project_path), "package.json")
+    package_json_path = path.join(project_path, "Packages", path.basename(project_path), "package.json")
     new_version = ""
 
     with open(package_json_path) as package_json:
@@ -80,7 +78,7 @@ def increment_version(project_path):
     if verbose:
         print(f"increment_version( project_path: {project_path} )")
 
-    package_json_path = os.path.join(project_path, "Packages", os.path.basename(project_path), "package.json")
+    package_json_path = path.join(project_path, "Packages", path.basename(project_path), "package.json")
     new_version = get_new_version(project_path)
     package_json_data = {}
 
@@ -119,8 +117,8 @@ def convert(project_path):
     if user_name == "" or user_mail == "":
         print("You need to fill out info!")
     else:
-        package_name = os.path.basename(project_path)
-        input_project_git_path = os.path.join(project_path, ".git")
+        package_name = path.basename(project_path)
+        input_project_git_path = path.join(project_path, ".git")
         repository = pygit2.Repository(input_project_git_path)
 
         author = pygit2.Signature(user_name, user_mail)
@@ -139,15 +137,26 @@ def convert(project_path):
         repository.create_branch("upm", most_recent_commit)
         switch_branch("upm", repository)
 
+        temp_id = f"{datetime.utcnow()}"
+        temp_id = temp_id.replace(":", "-")
+        temp_id = temp_id.replace(".", "-")
+        temp_id = f"{temp_id}-temp"
+
+        temp_library_dir = path.join(get_parent_dir(project_path), f"{package_name}-Library")
+        moved_library = False
+
         # delete all folders at root (except the ones we need to keep)
         project_root_folders = get_all_in_dir(target_dir=project_path, full_path=True, recursive=False,
                                               include_dirs=True, include_files=False)
         for project_root_folder in project_root_folders:
-            project_root_folder_name = os.path.basename(project_root_folder)
-            # todo: check if Library and move to hidden spot
-            if project_root_folder_name != "Packages" and project_root_folder_name != ".git":
-                print(f"deleting {project_root_folder_name}")
-                delete_root_folder(project_root_folder_name, project_path)
+            project_root_folder_name = path.basename(project_root_folder)
+            if project_root_folder_name == "Library":
+                shutil.move(project_root_folder, temp_library_dir)
+                moved_library = True
+            else:
+                if project_root_folder_name != "Packages" and project_root_folder_name != ".git":
+                    print(f"deleting {project_root_folder_name}")
+                    delete_root_folder(project_root_folder_name, project_path)
 
         # delete all files at root
         project_root_files = get_all_in_dir(target_dir=project_path, full_path=True, recursive=False,
@@ -163,14 +172,10 @@ def convert(project_path):
                 if is_empty:
                     os.rmdir(project_dir[0])
 
-        temp_id = f"{datetime.utcnow()}"
-        temp_id = temp_id.replace(":", "-")
-        temp_id = temp_id.replace(".", "-")
-        temp_id = f"{temp_id}-temp"
-        temp_dir = os.path.join(project_path, temp_id)
+        temp_dir = path.join(project_path, temp_id)
         os.makedirs(temp_dir)
 
-        package_folder_path = os.path.join(project_path, "Packages", package_name)
+        package_folder_path = path.join(project_path, "Packages", package_name)
         assets = get_all_in_dir(target_dir=package_folder_path, full_path=True, recursive=False, include_dirs=True,
                                 include_files=True)
         for asset in assets:
@@ -198,8 +203,6 @@ def convert(project_path):
         # repository.crendentals = sshcred
         #
         # repository.remotes["origin"].push(["refs/heads/upm:refs/heads/upm"])
-
-        # todo: move Library back from hidden spot
 
         # use this as temp
         print("")
